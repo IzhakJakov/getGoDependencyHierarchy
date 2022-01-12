@@ -4,7 +4,7 @@ A utility for getting the dependencies of a specific package in a Go module.
 
 Example using Zsh on MacOS
 --------------------------
-Looking for `github.com/spf13/cobra` with tag `@v1.1.1` in `grokify/go-aha`.  
+Looking for `github.com/spf13/cobra` with tag `v1.1.1` in `grokify/go-aha`.  
 A module is directly using[^1] the module which is directly under it.
 ```sh
   $ git clone 'https://github.com/grokify/go-aha.git'

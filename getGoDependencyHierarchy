@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-#=========================================================================================================
+#=========================================================================================
 # Created by: Izhak Jakov
 # Date: November 2021
 # A utility for getting the dependencies of a specific package in a Go module
-#=========================================================================================================
+#=========================================================================================
 # Example:
-# Looking for "github.com/spf13/cobra" with tag @v1.1.1 in "github.com/grokify/go-aha"
+# Looking for "github.com/spf13/cobra" with tag v1.1.1 in "github.com/grokify/go-aha"
 # The modules on the left column are using the modules on the right column
-#---------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------
 #  $ git clone 'https://github.com/grokify/go-aha.git'
 # 
 #  $ cd go-aha
@@ -20,9 +20,7 @@
 #      github.com/blend/go-sdk@v1.20211204.3
 #                       ⬇
 #          github.com/spf13/cobra@v1.1.1
-#=========================================================================================================
-
-# TODO: at the end of line 39
+#=========================================================================================
 
 [ "${#}" -eq 0 ] && {
 	echo "Usage: $(basename "${0}") <module>[@<revision>]"
@@ -36,7 +34,7 @@
 
 function printDependencies() {
 	local grepOut module
-	grepOut="$(echo "${modGraphOut}" |grep "\<${1}\>" |grep -v "^${1}" |head -1)" # TODO check if there are more users
+	grepOut="$(echo "${modGraphOut}" |grep "\<${1}\>" |grep -v "^${1}" |head -1)"
 	module="$(echo "${grepOut}" |sed -e 's [[:space:]].*$  g')"
 	[ ${module}"" == '' ] && return
 	[ ${#module} -gt ${maxWidth} ] && maxWidth=${#module}
