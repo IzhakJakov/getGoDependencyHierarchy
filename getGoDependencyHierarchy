@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-#=========================================================================================
+#========================================================================================
 # Created by: Izhak Jakov
 # Date: November 2021
 # A utility for getting the dependencies of a specific package in a Go module
-#=========================================================================================
+#========================================================================================
 # Example:
 # Looking for "github.com/spf13/cobra" with tag v1.1.1 in "github.com/grokify/go-aha"
 # The modules on the left column are using the modules on the right column
-#-----------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 #  $ git clone 'https://github.com/grokify/go-aha.git'
 # 
 #  $ cd go-aha
@@ -20,7 +20,7 @@
 #      github.com/blend/go-sdk@v1.20211204.3
 #                       ⬇
 #          github.com/spf13/cobra@v1.1.1
-#=========================================================================================
+#========================================================================================
 
 [ "${#}" -eq 0 ] && {
 	echo "Usage: $(basename "${0}") <module>[@<revision>]"
@@ -31,14 +31,19 @@
 	echo "Usage: $(basename "${0}") <module>[@<revision>]"
 	exit 1
 }
+ls ./go.mod >/dev/null 2>&1 || {
+	echo 'ERROR: This package is not a module (+incompatible version)'
+	echo '       Only modules are supported'
+	exit 2
+}
 
-function printDependencies() {
+function printDependents() {
 	local grepOut module
 	grepOut="$(echo "${modGraphOut}" |grep "\<${1}\>" |grep -v "^${1}" |head -1)"
-	module="$(echo "${grepOut}" |sed -e 's [[:space:]].*$  g')"
-	[ ${module}"" == '' ] && return
-	[ ${#module} -gt ${maxWidth} ] && maxWidth=${#module}
-	printDependencies "${module}"
+	module="${grepOut%%[[:space:]]*}"
+	[[ ${module}"" == '' ]] && return
+	[[ ${#module} -gt ${maxWidth} ]] && maxWidth=${#module}
+	printDependents "${module}"
 	width=$(( ( ( ${maxWidth} - ${#module} ) / 2 ) + 2 + ${#module}))
 	printf "%+${width}s\n" "${module}"
 	width=$(( ( ${maxWidth} / 2 ) + 4 ))
@@ -62,6 +67,6 @@ numOfDepsFound=$(echo -n ${module} |wc -w)
 }
 
 maxWidth=${#module}
-printDependencies "${module}"
+printDependents "${module}"
 width=$(( ( ( ${maxWidth} - ${#module} ) / 2 ) + 2 + ${#module}))
 printf "%+${width}s\n" "${module}"
