@@ -39,7 +39,7 @@ ls ./go.mod >/dev/null 2>&1 || {
 
 function printDependents() {
 	local grepOut module
-	grepOut="$(echo "${modGraphOut}" |grep "\<${1}\>" |grep -v "^${1}" |head -1)"
+	grepOut="$(echo "${modGraphOut}" |grep "\s${1}$" |head -1)"
 	module="${grepOut%%[[:space:]]*}"
 	[[ ${module}"" == '' ]] && return
 	[[ ${#module} -gt ${maxWidth} ]] && maxWidth=${#module}
