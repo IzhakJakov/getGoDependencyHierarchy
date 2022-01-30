@@ -11,10 +11,14 @@ A module is directly using[^1] the module which is directly under it.
  
   $ cd go-aha
  
+  $ git checkout v0.2.3
+
   $ getGoDependencyHierarchy 'github.com/spf13/cobra@v1.1.1'
             github.com/grokify/go-aha
                        ⬇
        github.com/grokify/gocharts@v1.16.8
+                       ⬇
+    github.com/wcharczuk/go-chart@v2.0.1+incompatible
                        ⬇
       github.com/blend/go-sdk@v1.20211204.3
                        ⬇
