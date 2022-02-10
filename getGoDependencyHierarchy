@@ -9,17 +9,21 @@
 # The modules on the left column are using the modules on the right column
 #----------------------------------------------------------------------------------------
 #  $ git clone 'https://github.com/grokify/go-aha.git'
-# 
+#
 #  $ cd go-aha
-# 
+#
+#  $ git checkout v0.2.3
+#
 #  $ getGoDependencyHierarchy 'github.com/spf13/cobra@v1.1.1'
-#            github.com/grokify/go-aha
-#                       ⬇
-#       github.com/grokify/gocharts@v1.16.8
-#                       ⬇
-#      github.com/blend/go-sdk@v1.20211204.3
-#                       ⬇
-#          github.com/spf13/cobra@v1.1.1
+#          github.com/grokify/go-aha
+#                     ⬇
+#     github.com/grokify/gocharts@v1.16.8
+#                     ⬇
+#  github.com/wcharczuk/go-chart@v2.0.1+incompatible
+#                     ⬇
+#    github.com/blend/go-sdk@v1.20211204.3
+#                     ⬇
+#        github.com/spf13/cobra@v1.1.1
 #========================================================================================
 
 [ "${#}" -eq 0 ] && {
@@ -32,27 +36,62 @@
 	exit 1
 }
 ls ./go.mod >/dev/null 2>&1 || {
-	echo 'ERROR: This package is not a module (+incompatible version)'
-	echo '       Only modules are supported'
+	echo 'ERROR: This is not a compatible package (+incompatible version)'
+	echo '       Only compatible modules are supported'
 	exit 2
 }
 
+GC=('grep' '--no-messages')  # Grep Command
+source <(go env |${GC[@]} 'GOMODCACHE')
+
 function printDependents() {
-	local grepOut module
-	grepOut="$(echo "${modGraphOut}" |grep "\s${1}$" |head -1)"
-	module="${grepOut%%[[:space:]]*}"
-	[[ ${module}"" == '' ]] && return
+	local grepOut="$(${GC[@]} "\s${1}$" <<<"${modGraphOut}" |head -1)" # Get only one of ${1}'s dependents (currently no support for multiple dependents)
+	local module="${grepOut%%[[:space:]]*}"  # ${module} is a dependent of ${1}
+	[[ ${module}'' == '' ]] && return
+
 	[[ ${#module} -gt ${maxWidth} ]] && maxWidth=${#module}
+
 	printDependents "${module}"
+
 	width=$(( ( ( ${maxWidth} - ${#module} ) / 2 ) + 2 + ${#module}))
 	printf "%+${width}s\n" "${module}"
 	width=$(( ( ${maxWidth} / 2 ) + 4 ))
 	printf "%+${width}s\n" '⬇'
+
+	# Support for Incompatible Packages
+	# While using this script to get the dependency chain:
+	# Case 1: beginning with an incompatible pkg:
+	#         - Currently not supported: emit errmsg
+	# Case 2: with incompatible pkgs inside it
+	# Case 3: ending with incompatible pkgs
+	local missing=$(${GC[@]} "${1%@v*}[[:space:]]*v${1##*@v}" "${GOMODCACHE}/${module}/go.mod")
+	[[ ${missing}'' == '' || ${missing}'' =~ '//'[[:space:]]*'indirect' ]] && {
+		# Get all the module's incompatible dependencies
+		local indency  # ${module}'s incompatible dependency
+		local directMods="$(${GC[@]} --invert-match '//[[:space:]]*indirect' "${GOMODCACHE}/${module}/go.mod")"
+		for indency in $(${GC[@]} --only-matching '[[:alnum:]].*\sv.*+incompatible' <<<"${directMods}"); do
+			# Convert "go.mod" format to "go list" format
+			idName=${indency%[[:space:]]*v[[:digit:]]*}
+			idVersion=${indency##*[[:space:]]*v}
+			indency="${idName}@v${idVersion}"
+
+			$(cd ${GOMODCACHE}/${module};
+				go list --deps -f '{{.ImportPath}} {{.Imports}} {{.TestImports}} {{.XTestImports}}' ./... |
+					${GC[@]} --quiet ${1%%@v*}) && {
+					width=$(( ( ( ${maxWidth} - ${#indency} ) / 2 ) + 2 + ${#indency}))
+					printf "%+${width}s\n" "${indency}"
+					width=$(( ( ${maxWidth} / 2 ) + 4 ))
+					printf "%+${width}s\n" '⬇'
+				}
+		done
+	}
 }
 
+IFS=$'\n'
 modGraphOut="$(go mod graph)"
-grepOut="$(echo "${modGraphOut}" |grep "\<${1}\>" |grep -v "^${1}")"
-module="$(echo "${grepOut}" |sed -e 's ^.*[[:space:]]  g' |sort -u)"
+grepOut="$(${GC[@]} "\s${1}" <<<"${modGraphOut}")"
+module="$(sed -e 's ^.*[[:space:]]  g' <<<"${grepOut}" |sort -u)"
+
 numOfDepsFound=$(echo -n ${module} |wc -w)
 [ ${numOfDepsFound} -eq 0 ] && {
 	echo "\"${1}\" is not a dependency of this package."
