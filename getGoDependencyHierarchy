@@ -46,9 +46,9 @@ source <(go env |${GC[@]} 'GOMODCACHE')
 
 {
 	sleep "${GDDH_TIMEOUT:-16}"
-	kill "$$"  &>/dev/null && exit 42
+	kill "$$"       &>/dev/null && exit 42
 	sleep 2
-	kill -KILL &>/dev/null && exit 41"$$"
+	kill -KILL "$$" &>/dev/null && exit 41
 } &
 timeout_PID="$!"
 
