@@ -44,6 +44,14 @@ ls ./go.mod >/dev/null 2>&1 || {
 GC=('grep' '--no-messages')  # Grep Command
 source <(go env |${GC[@]} 'GOMODCACHE')
 
+{
+	sleep "${GDDH_TIMEOUT:-16}"
+	kill "$$"  &>/dev/null && exit 42
+	sleep 2
+	kill -KILL &>/dev/null && exit 41"$$"
+} &
+timeout_PID="$!"
+
 function printDependents() {
 	local grepOut="$(${GC[@]} "\s${1}$" <<<"${modGraphOut}" |head -1)" # Get only one of ${1}'s dependents (currently no support for multiple dependents)
 	local module="${grepOut%%[[:space:]]*}"  # ${module} is a dependent of ${1}
@@ -95,17 +103,19 @@ module="$(sed -e 's ^.*[[:space:]]  g' <<<"${grepOut}" |sort -u)"
 numOfDepsFound=$(echo -n ${module} |wc -w)
 [ ${numOfDepsFound} -eq 0 ] && {
 	echo "\"${1}\" is not a dependency of this package."
-	exit 2
+	exit 5
 }
 [ ${numOfDepsFound} -gt 1 ] && {
 	echo "Multiple revisions of \"${1}\" have been found in this package."
 	echo 'Please append a revision and try again:'
 	echo "${module}" |sed -e 's/^[[:space:]]*/ -> /'
 	echo "Usage: $(basename "${0}") '${1}@<revision>'"
-	exit 3
+	exit 6
 }
 
 maxWidth=${#module}
 printDependents "${module}"
 width=$(( ( ( ${maxWidth} - ${#module} ) / 2 ) + 2 + ${#module}))
 printf "%+${width}s\n" "${module}"
+
+kill "${timeout_PID}" &>/dev/null
