@@ -26,16 +26,15 @@ A module is directly using[^1] the module which is directly under it.
 ```
 [^1]: Directly using means the module is directly inside `go.mod` not just `go.sum`.
 
-Timeout feature
----------------
+### Timeout feature
 By default the script will timeout after 16 seconds.  In order to change the default time limit (in seconds) set the `$GGDH_TIMEOUT` env var.
 
 ___Note___: _Depending on your shell, this might need to be exported_.
 
-Limited support for Incompatible Packages
------------------------------------------
-While using this script to get the dependency chain:
- - Case 1: beginning with an incompatible pkg:
- -         - Currently not supported: emit errmsg
- - Case 2: with incompatible pkgs inside it
- - Case 3: ending with incompatible pkgs
+### Limited support for Incompatible Packages
+
+|        Scenario Description           | Support |
+|---------------------------------------|:-------:|
+| Chain starts with an incompatible pkg |    ❌   |
+| Incompatible pkgs inside the chain    |    ✔️    |
+| Chain ends with an incompatible pkg   |    ✔️    |
