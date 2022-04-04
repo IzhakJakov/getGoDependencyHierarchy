@@ -29,6 +29,7 @@ A module is directly using[^1] the module which is directly under it.
 Timeout feature
 ---------------
 By default the script will timeout after 16 seconds.  In order to change the default time limit (in seconds) set the `$GGDH_TIMEOUT` env var.
+
 ___Note___: _Depending on your shell, this might need to be exported_.
 
 Limited support for Incompatible Packages
