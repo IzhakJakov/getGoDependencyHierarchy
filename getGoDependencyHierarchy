@@ -42,7 +42,7 @@ ls ./go.mod >/dev/null 2>&1 || {
 }
 
 GC=('grep' '--no-messages')  # Grep Command
-source <(go env |${GC[@]} 'GOMODCACHE')
+GOMODCACHE="$(go env 'GOMODCACHE')"
 
 {
 	sleep "${GGDH_TIMEOUT:-16}"
@@ -54,7 +54,7 @@ timeout_PID="$!"
 
 function printDependents() {
 	local grepOut="$(${GC[@]} "\s${1}$" <<<"${modGraphOut}" |head -1)" # Get only one of ${1}'s dependents (currently no support for multiple dependents)
-	local module="${grepOut%%[[:space:]]*}"  # ${module} is a dependent of ${1}
+	local module="${grepOut%%[[:blank:]]*}"  # ${module} is a dependent of ${1}
 	[[ ${module}'' == '' ]] && return
 
 	[[ ${#module} -gt ${maxWidth} ]] && maxWidth=${#module}
@@ -72,15 +72,15 @@ function printDependents() {
 	#         - Currently not supported: emit errmsg
 	# Case 2: with incompatible pkgs inside it
 	# Case 3: ending with incompatible pkgs
-	local missing=$(${GC[@]} "${1%@v*}[[:space:]]*v${1##*@v}" "${GOMODCACHE}/${module}/go.mod")
-	[[ ${missing}'' == '' || ${missing}'' =~ '//'[[:space:]]*'indirect' ]] && {
+	local missing=$(${GC[@]} "${1%@v*}[[:blank:]]*v${1##*@v}" "${GOMODCACHE}/${module}/go.mod")
+	[[ ${missing}'' == '' || ${missing}'' =~ '//'[[:blank:]]*'indirect' ]] && {
 		# Get all the module's incompatible dependencies
 		local indency  # ${module}'s incompatible dependency
-		local directMods="$(${GC[@]} --invert-match '//[[:space:]]*indirect' "${GOMODCACHE}/${module}/go.mod")"
+		local directMods="$(${GC[@]} --invert-match '//[[:blank:]]*indirect' "${GOMODCACHE}/${module}/go.mod")"
 		for indency in $(${GC[@]} --only-matching '[[:alnum:]].*\sv.*+incompatible' <<<"${directMods}"); do
 			# Convert "go.mod" format to "go list" format
-			idName=${indency%[[:space:]]*v[[:digit:]]*}
-			idVersion=${indency##*[[:space:]]*v}
+			idName=${indency%[[:blank:]]*v[[:digit:]]*}
+			idVersion=${indency##*[[:blank:]]*v}
 			indency="${idName}@v${idVersion}"
 
 			$(cd ${GOMODCACHE}/${module};
@@ -95,10 +95,18 @@ function printDependents() {
 	}
 }
 
+modGraphDir=$(mktemp -d)
+echo "$(<go.sum)" >${modGraphDir}/go.sum
+${GC[@]} --invert-match '//[[:blank:]]*indirect' go.mod >${modGraphDir}/go.mod
+cd ${modGraphDir}
+
 IFS=$'\n'
 modGraphOut="$(go mod graph)"
+cd - >/dev/null
+rm -rf ${modGraphDir}
+
 grepOut="$(${GC[@]} "\s${1}" <<<"${modGraphOut}")"
-module="$(sed -e 's ^.*[[:space:]]  g' <<<"${grepOut}" |sort -u)"
+module="$(sed -e 's ^.*[[:blank:]]  g' <<<"${grepOut}" |sort -u)"
 
 numOfDepsFound=$(echo -n ${module} |wc -w)
 [ ${numOfDepsFound} -eq 0 ] && {
@@ -108,7 +116,7 @@ numOfDepsFound=$(echo -n ${module} |wc -w)
 [ ${numOfDepsFound} -gt 1 ] && {
 	echo "Multiple revisions of \"${1}\" have been found in this package."
 	echo 'Please append a revision and try again:'
-	echo "${module}" |sed -e 's/^[[:space:]]*/ -> /'
+	echo "${module}" |sed -e 's/^[[:blank:]]*/ -> /'
 	echo "Usage: $(basename "${0}") '${1}@<revision>'"
 	exit 6
 }
